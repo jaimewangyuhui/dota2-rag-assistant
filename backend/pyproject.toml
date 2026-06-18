@@ -1,0 +1,28 @@
+[project]
+name = "dota2-rag-assistant-backend"
+version = "0.1.0"
+description = "Local-first Dota 2 RAG assistant backend"
+requires-python = ">=3.11"
+dependencies = [
+  "beautifulsoup4>=4.12.3",
+  "fastapi>=0.115.0",
+  "httpx>=0.27.2",
+  "pydantic>=2.9.0",
+  "pydantic-settings>=2.5.2",
+  "pymilvus>=2.4.7",
+  "sqlalchemy>=2.0.35",
+  "trafilatura>=1.12.2",
+  "uvicorn[standard]>=0.30.6"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.3",
+  "pytest-asyncio>=0.24.0",
+  "respx>=0.21.1"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
