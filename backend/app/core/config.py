@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     vector_data_path: Path = Path("data/milvus")
     vector_index_path: Path = Path("data/milvus/text_chunks.json")
     ollama_base_url: str = "http://localhost:11434"
+    ollama_chat_model: str = "qwen2.5:7b"
     cors_origins: str = Field(
         default="http://localhost:5173,http://127.0.0.1:5173",
         description="Comma-separated browser origins allowed to call the API.",
