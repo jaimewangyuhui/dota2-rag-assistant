@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     app_name: str = "Dota 2 RAG Assistant"
     sqlite_path: Path = Path("data/sqlite/dota2_rag.db")
     vector_data_path: Path = Path("data/milvus")
+    vector_index_path: Path = Path("data/milvus/text_chunks.json")
     ollama_base_url: str = "http://localhost:11434"
     cors_origins: str = Field(
         default="http://localhost:5173,http://127.0.0.1:5173",
