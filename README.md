@@ -84,3 +84,19 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/chat -ContentType 
 ```
 
 M3 returns `answer`, `question_type`, `sources`, and `debug`. Runtime generation uses `OLLAMA_BASE_URL` and `OLLAMA_CHAT_MODEL`; if the indexed sources do not cover a question, the assistant returns an explicit uncertainty answer instead of guessing.
+
+## M4 Frontend Chat UI
+
+After backend and frontend are running, open:
+
+```text
+http://127.0.0.1:5173
+```
+
+Ask:
+
+```text
+What does BKB do?
+```
+
+The page should show the assistant answer, the `knowledge` question type, and source citations such as `Seed: Black King Bar`.

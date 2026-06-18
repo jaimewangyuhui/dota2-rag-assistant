@@ -79,6 +79,8 @@ describe("App", () => {
     render(<App />);
 
     const input = await screen.findByLabelText("Ask a Dota 2 question");
+    expect(screen.getByLabelText("Dota 2 RAG workbench")).toBeInTheDocument();
+    expect(screen.getByLabelText("Sources")).toBeInTheDocument();
     fireEvent.change(input, { target: { value: "What does BKB do?" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
 
