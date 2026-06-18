@@ -68,3 +68,19 @@ Invoke-RestMethod -Uri http://127.0.0.1:8000/api/sources
 ```
 
 The M2 seed index includes `Black King Bar`, `Roshan`, and `Blink Dagger` documents. Runtime ingestion uses a deterministic local embedding for repeatable development checks; `OllamaEmbedder` is available for later model-backed ingestion once the embedding model is pulled.
+
+## M3 Basic RAG Chat
+
+Seed the local index before asking questions:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/ingest/documents
+```
+
+Ask a question:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/chat -ContentType "application/json" -Body '{"message":"What does BKB do?"}'
+```
+
+M3 returns `answer`, `question_type`, `sources`, and `debug`. Runtime generation uses `OLLAMA_BASE_URL` and `OLLAMA_CHAT_MODEL`; if the indexed sources do not cover a question, the assistant returns an explicit uncertainty answer instead of guessing.
