@@ -2,6 +2,8 @@ backend/.conda/
 backend/.venv/
 backend/.tmp/
 backend/.pytest_cache/
+backend/pytest-cache-files-*/
+backend/*.egg-info/
 backend/**/__pycache__/
 frontend/node_modules/
 frontend/dist/
