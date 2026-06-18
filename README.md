@@ -52,3 +52,19 @@ npm run build
 ```
 
 Ollama can be unavailable during M1. The health endpoint still responds and marks `ollama` as unavailable with the connection detail.
+
+## M2 Text Ingestion
+
+Seed the local text knowledge index:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/ingest/documents
+```
+
+List indexed sources:
+
+```powershell
+Invoke-RestMethod -Uri http://127.0.0.1:8000/api/sources
+```
+
+The M2 seed index includes `Black King Bar`, `Roshan`, and `Blink Dagger` documents. Runtime ingestion uses a deterministic local embedding for repeatable development checks; `OllamaEmbedder` is available for later model-backed ingestion once the embedding model is pulled.
