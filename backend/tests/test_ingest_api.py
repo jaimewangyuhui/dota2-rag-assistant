@@ -12,6 +12,7 @@ def test_ingest_documents_endpoint_indexes_seed_documents(tmp_path: Path) -> Non
         sqlite_path=tmp_path / "sqlite" / "dota2_rag.db",
         vector_data_path=tmp_path / "vectors",
         vector_index_path=tmp_path / "vectors" / "text_chunks.json",
+        opendota_knowledge_sources_enabled=False,
     )
     client = TestClient(create_app(settings))
 
@@ -29,6 +30,7 @@ def test_sources_endpoint_lists_indexed_sources(tmp_path: Path) -> None:
         sqlite_path=tmp_path / "sqlite" / "dota2_rag.db",
         vector_data_path=tmp_path / "vectors",
         vector_index_path=tmp_path / "vectors" / "text_chunks.json",
+        opendota_knowledge_sources_enabled=False,
     )
     client = TestClient(create_app(settings))
     client.post("/api/ingest/documents")
@@ -64,6 +66,7 @@ def test_ingest_documents_endpoint_can_index_official_documents(tmp_path: Path) 
         sqlite_path=tmp_path / "sqlite" / "dota2_rag.db",
         vector_data_path=tmp_path / "vectors",
         vector_index_path=tmp_path / "vectors" / "text_chunks.json",
+        opendota_knowledge_sources_enabled=False,
     )
     app = create_app(settings)
     app.state.official_documents_loader = official_api_documents
@@ -75,3 +78,40 @@ def test_ingest_documents_endpoint_can_index_official_documents(tmp_path: Path) 
     payload = response.json()
     assert payload["documents"] == 4
     assert "Official Dota 2: Axe" in payload["sources"]
+
+
+def opendota_api_test_documents() -> list[DocumentInput]:
+    return [
+        DocumentInput(
+            text="Blink Dagger is an OpenDota item constant. Cost: 2250. Mobility item.",
+            metadata=SourceMetadata(
+                source_url="https://api.opendota.com/api/constants/items/blink",
+                source_name="OpenDota Item: Blink Dagger",
+                patch_version=None,
+                entity_type="item",
+                entity_name="Blink Dagger",
+                updated_at="2026-06-20",
+            ),
+        )
+    ]
+
+
+def test_ingest_documents_can_include_injected_opendota_knowledge_loader(
+    tmp_path: Path,
+) -> None:
+    settings = Settings(
+        sqlite_path=tmp_path / "sqlite" / "dota2_rag.db",
+        vector_data_path=tmp_path / "vectors",
+        vector_index_path=tmp_path / "vectors" / "text_chunks.json",
+        opendota_knowledge_sources_enabled=False,
+    )
+    app = create_app(settings)
+    app.state.opendota_knowledge_documents_loader = opendota_api_test_documents
+    client = TestClient(app)
+
+    response = client.post("/api/ingest/documents")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["documents"] == 4
+    assert "OpenDota Item: Blink Dagger" in payload["sources"]
