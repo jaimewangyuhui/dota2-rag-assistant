@@ -1,0 +1,20 @@
+{
+  "heroes": [
+    {
+      "name": "npc_dota_hero_axe",
+      "localized_name": "Axe",
+      "roles": ["Initiator", "Durable", "Disabler"],
+      "primary_attribute": "str",
+      "summary": "Axe thrives in the chaos of battle, forcing enemies to attack him and punishing clustered opponents.",
+      "updated_at": "2026-06-19"
+    },
+    {
+      "name": "npc_dota_hero_juggernaut",
+      "localized_name": "Juggernaut",
+      "roles": ["Carry", "Pusher", "Escape"],
+      "primary_attribute": "agi",
+      "summary": "Juggernaut combines lane sustain, spell immunity timing, and burst damage from Omnislash.",
+      "updated_at": "2026-06-19"
+    }
+  ]
+}
