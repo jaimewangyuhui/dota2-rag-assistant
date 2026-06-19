@@ -11,6 +11,7 @@ def test_ingest_documents_endpoint_indexes_seed_documents(tmp_path: Path) -> Non
     settings = Settings(
         sqlite_path=tmp_path / "sqlite" / "dota2_rag.db",
         vector_data_path=tmp_path / "vectors",
+        vector_index_path=tmp_path / "vectors" / "text_chunks.json",
     )
     client = TestClient(create_app(settings))
 
@@ -27,6 +28,7 @@ def test_sources_endpoint_lists_indexed_sources(tmp_path: Path) -> None:
     settings = Settings(
         sqlite_path=tmp_path / "sqlite" / "dota2_rag.db",
         vector_data_path=tmp_path / "vectors",
+        vector_index_path=tmp_path / "vectors" / "text_chunks.json",
     )
     client = TestClient(create_app(settings))
     client.post("/api/ingest/documents")
@@ -61,6 +63,7 @@ def test_ingest_documents_endpoint_can_index_official_documents(tmp_path: Path) 
     settings = Settings(
         sqlite_path=tmp_path / "sqlite" / "dota2_rag.db",
         vector_data_path=tmp_path / "vectors",
+        vector_index_path=tmp_path / "vectors" / "text_chunks.json",
     )
     app = create_app(settings)
     app.state.official_documents_loader = official_api_documents

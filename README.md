@@ -100,3 +100,15 @@ What does BKB do?
 ```
 
 The page should show the assistant answer, the `knowledge` question type, and source citations such as `Seed: Black King Bar`.
+
+## M5 Official Heroes And Patches
+
+M5 can index official Dota 2 hero and patch note documents in addition to local seed documents.
+
+Official website fetching is disabled by default so local tests and offline development remain deterministic. Set `OFFICIAL_DOTA_SOURCES_ENABLED=true` before starting the backend to include live official heroes and patches during ingestion.
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/ingest/documents
+```
+
+Tests use local fixtures and do not call `dota2.com`. Official item scraping is intentionally out of scope for M5.
