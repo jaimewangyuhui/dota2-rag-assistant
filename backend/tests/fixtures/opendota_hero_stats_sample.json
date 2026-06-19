@@ -1,0 +1,26 @@
+[
+  {
+    "id": 2,
+    "name": "npc_dota_hero_axe",
+    "localized_name": "Axe",
+    "primary_attr": "str",
+    "roles": ["Initiator", "Durable", "Disabler", "Carry"],
+    "pub_pick": 1000,
+    "pub_win": 520,
+    "pro_pick": 22,
+    "pro_win": 7,
+    "pro_ban": 36
+  },
+  {
+    "id": 8,
+    "name": "npc_dota_hero_juggernaut",
+    "localized_name": "Juggernaut",
+    "primary_attr": "agi",
+    "roles": ["Carry", "Pusher", "Escape"],
+    "pub_pick": 500,
+    "pub_win": 260,
+    "pro_pick": 2,
+    "pro_win": 1,
+    "pro_ban": 0
+  }
+]
