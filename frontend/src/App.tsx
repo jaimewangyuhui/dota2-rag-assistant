@@ -1,7 +1,16 @@
 import { AlertCircle, CheckCircle2, RefreshCw, Send } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-import { askChat, ChatResponse, fetchHealth, HealthResponse } from "./api/client";
+import {
+  askChat,
+  ChatResponse,
+  fetchHealth,
+  HealthResponse,
+  KnowledgeRefreshResponse,
+  refreshKnowledge,
+  refreshStats,
+  StatsRefreshResponse,
+} from "./api/client";
 import "./styles.css";
 
 type LoadState =
@@ -13,12 +22,24 @@ type ChatMessage =
   | { id: number; role: "user"; content: string }
   | { id: number; role: "assistant"; content: string; response: ChatResponse };
 
+type RefreshState<T> =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; result: T }
+  | { status: "error"; message: string };
+
 function App() {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatError, setChatError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [knowledgeRefresh, setKnowledgeRefresh] = useState<
+    RefreshState<KnowledgeRefreshResponse>
+  >({ status: "idle" });
+  const [statsRefresh, setStatsRefresh] = useState<
+    RefreshState<StatsRefreshResponse>
+  >({ status: "idle" });
 
   useEffect(() => {
     let active = true;
@@ -38,6 +59,51 @@ function App() {
     () => [...messages].reverse().find((item) => item.role === "assistant"),
     [messages],
   );
+
+  async function refreshServiceHealth() {
+    try {
+      const health = await fetchHealth();
+      setState({ status: "ready", health });
+    } catch {
+      // Keep the refresh result visible. The next page load will show health errors.
+    }
+  }
+
+  async function submitKnowledgeRefresh() {
+    if (knowledgeRefresh.status === "loading") return;
+    setKnowledgeRefresh({ status: "loading" });
+    try {
+      const result = await refreshKnowledge();
+      setKnowledgeRefresh({ status: "success", result });
+      await refreshServiceHealth();
+    } catch (error) {
+      setKnowledgeRefresh({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Knowledge refresh failed. Check backend and retry.",
+      });
+    }
+  }
+
+  async function submitStatsRefresh() {
+    if (statsRefresh.status === "loading") return;
+    setStatsRefresh({ status: "loading" });
+    try {
+      const result = await refreshStats();
+      setStatsRefresh({ status: "success", result });
+      await refreshServiceHealth();
+    } catch (error) {
+      setStatsRefresh({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Stats refresh failed. Check OpenDota/network and retry.",
+      });
+    }
+  }
 
   async function submitQuestion(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -117,6 +183,60 @@ function App() {
             ))}
           </div>
         )}
+
+        <section className="refreshPanel" aria-label="Data refresh">
+          <div>
+            <h2>Data refresh</h2>
+          </div>
+          <div className="refreshActions">
+            <div className="refreshAction">
+              <button
+                disabled={knowledgeRefresh.status === "loading"}
+                onClick={submitKnowledgeRefresh}
+                type="button"
+              >
+                <RefreshCw
+                  aria-hidden
+                  className={
+                    knowledgeRefresh.status === "loading" ? "spin" : undefined
+                  }
+                />
+                Refresh Knowledge
+              </button>
+              <RefreshStatus
+                idleText="Knowledge ready"
+                loadingText="Refreshing knowledge..."
+                state={knowledgeRefresh}
+                successText={(result) =>
+                  `${result.documents} documents, ${result.chunks} chunks, ${result.sources.length} sources`
+                }
+              />
+            </div>
+            <div className="refreshAction">
+              <button
+                disabled={statsRefresh.status === "loading"}
+                onClick={submitStatsRefresh}
+                type="button"
+              >
+                <RefreshCw
+                  aria-hidden
+                  className={
+                    statsRefresh.status === "loading" ? "spin" : undefined
+                  }
+                />
+                Refresh Stats
+              </button>
+              <RefreshStatus
+                idleText="Stats ready"
+                loadingText="Refreshing stats..."
+                state={statsRefresh}
+                successText={(result) =>
+                  `${result.heroes} heroes refreshed at ${result.refreshed_at}`
+                }
+              />
+            </div>
+          </div>
+        </section>
 
         <div className="workbench">
           <section className="chatPanel" aria-label="Chat">
@@ -200,6 +320,33 @@ function App() {
       </section>
     </main>
   );
+}
+
+function RefreshStatus<T>({
+  idleText,
+  loadingText,
+  state,
+  successText,
+}: {
+  idleText: string;
+  loadingText: string;
+  state: RefreshState<T>;
+  successText: (result: T) => string;
+}) {
+  if (state.status === "loading") {
+    return <p className="refreshStatus">{loadingText}</p>;
+  }
+  if (state.status === "success") {
+    return <p className="refreshStatus success">{successText(state.result)}</p>;
+  }
+  if (state.status === "error") {
+    return (
+      <p className="refreshStatus error" role="alert">
+        {state.message}
+      </p>
+    );
+  }
+  return <p className="refreshStatus">{idleText}</p>;
 }
 
 export default App;

@@ -178,4 +178,162 @@ describe("App", () => {
     });
     expect(screen.getByLabelText("Ask a Dota 2 question")).not.toBeDisabled();
   });
+
+  test("refreshes knowledge documents from the browser", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(healthResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            documents: 3,
+            chunks: 3,
+            sources: [
+              "Official Dota 2: Axe",
+              "Seed: Black King Bar",
+              "Seed: Blink Dagger",
+              "Seed: Roshan",
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(healthResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    render(<App />);
+
+    await screen.findByLabelText("Data refresh");
+    fireEvent.click(screen.getByRole("button", { name: "Refresh Knowledge" }));
+
+    expect(screen.getByText("Refreshing knowledge...")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText("3 documents, 3 chunks, 4 sources"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  test("refreshes hero stats from the browser", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(healthResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            heroes: 128,
+            refreshed_at: "2026-06-19T09:00:00Z",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(healthResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    render(<App />);
+
+    await screen.findByLabelText("Data refresh");
+    fireEvent.click(screen.getByRole("button", { name: "Refresh Stats" }));
+
+    expect(screen.getByText("Refreshing stats...")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText("128 heroes refreshed at 2026-06-19T09:00:00Z"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  test("shows a stats refresh error without clearing chat controls", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(healthResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(new Response("bad gateway", { status: 502 }));
+
+    render(<App />);
+
+    const input = await screen.findByLabelText("Ask a Dota 2 question");
+    fireEvent.change(input, { target: { value: "Axe win rate meta" } });
+    fireEvent.click(screen.getByRole("button", { name: "Refresh Stats" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          "Stats refresh failed. Check OpenDota/network and retry.",
+        ),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByDisplayValue("Axe win rate meta")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+  });
+
+  test("disables only the refresh action that is currently pending", async () => {
+    let resolveKnowledge: (value: Response) => void = () => undefined;
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(healthResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveKnowledge = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(healthResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    render(<App />);
+
+    await screen.findByLabelText("Data refresh");
+    const knowledgeButton = screen.getByRole("button", {
+      name: "Refresh Knowledge",
+    });
+    const statsButton = screen.getByRole("button", { name: "Refresh Stats" });
+
+    fireEvent.click(knowledgeButton);
+
+    expect(knowledgeButton).toBeDisabled();
+    expect(statsButton).toBeEnabled();
+
+    resolveKnowledge(
+      new Response(
+        JSON.stringify({
+          documents: 3,
+          chunks: 3,
+          sources: ["Seed: Black King Bar"],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await waitFor(() => {
+      expect(knowledgeButton).toBeEnabled();
+    });
+  });
 });
