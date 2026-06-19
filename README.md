@@ -93,6 +93,8 @@ After backend and frontend are running, open:
 http://127.0.0.1:5173
 ```
 
+The browser demo also includes a `Data refresh` panel. Use `Refresh Knowledge` to call `POST /api/ingest/documents` and `Refresh Stats` to call `POST /api/refresh/stats` without leaving the UI.
+
 Ask:
 
 ```text
@@ -122,6 +124,8 @@ Refresh the local stats snapshot:
 ```powershell
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/refresh/stats
 ```
+
+In the frontend demo, prefer the `Refresh Stats` button for manual testing. If OpenDota is unavailable, the UI shows a retry-oriented error and existing chat remains usable.
 
 Then ask a stats question:
 

@@ -122,6 +122,73 @@ h1 {
   font-weight: 800;
 }
 
+.refreshPanel {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.35fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  margin: 0 0 18px;
+  padding: 14px;
+  border: 1px solid #c3cdc2;
+  border-radius: 8px;
+  background: #fbfcfa;
+}
+
+.refreshPanel h2 {
+  font-size: 1rem;
+}
+
+.refreshActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.refreshAction {
+  display: grid;
+  gap: 8px;
+  align-items: start;
+}
+
+.refreshAction button {
+  display: inline-flex;
+  min-height: 40px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #31543e;
+  border-radius: 6px;
+  background: #31543e;
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.refreshAction button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.refreshAction button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.refreshStatus {
+  color: #536159;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.refreshStatus.success {
+  color: #207245;
+}
+
+.refreshStatus.error {
+  color: #9b1c1c;
+}
+
 .workbench {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
@@ -297,6 +364,11 @@ h1 {
   }
 
   .workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .refreshPanel,
+  .refreshActions {
     grid-template-columns: 1fr;
   }
 
