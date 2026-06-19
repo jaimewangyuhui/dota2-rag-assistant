@@ -15,25 +15,30 @@ def build_prompt(
     question: str,
     question_type: str,
     retrieved_chunks: list[RetrievedChunk],
+    canonical_terms: list[str] | None = None,
 ) -> str:
     context = "\n\n".join(
         _format_chunk(index, chunk)
         for index, chunk in enumerate(retrieved_chunks, start=1)
     )
+    term_hint = ""
+    if canonical_terms:
+        term_hint = f"\nCanonical terms detected: {', '.join(canonical_terms)}\n"
+
     advice_rule = ""
     if question_type == "advice":
         advice_rule = "\n- 不要使用 must buy、always pick 这类绝对说法；建议必须写成视局势而定。"
 
     return f"""你是一个 Dota 2 RAG 助手。请用中文回答，并保留关键英文 Dota 2 术语，例如 Black King Bar / BKB、Roshan、Blink Dagger。
 
-问题类型: {question_type}
+问题类型: {question_type}{term_hint}
 
 回答结构必须包含:
-- Direct conclusion
-- Key reasons
-- Recommended actions or cautions
-- Relevant English terms
-- Sources and data freshness
+- 直接结论 (Direct conclusion)
+- 关键原因 (Key reasons)
+- 建议/注意 (Recommended actions or cautions)
+- 相关术语 (Relevant English terms)
+- 来源/数据新鲜度 (Sources and data freshness)
 
 规则:
 - 只使用给定 context 支持的内容。

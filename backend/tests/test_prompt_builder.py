@@ -30,8 +30,24 @@ def test_prompt_contains_answer_rules_and_context() -> None:
     assert "请用中文回答" in prompt
     assert "保留关键英文 Dota 2 术语" in prompt
     assert "Direct conclusion" in prompt
+    assert "直接结论" in prompt
+    assert "关键原因" in prompt
+    assert "建议/注意" in prompt
+    assert "相关术语" in prompt
+    assert "来源/数据新鲜度" in prompt
     assert "Black King Bar" in prompt
     assert "seed://items/black-king-bar" in prompt
+
+
+def test_prompt_includes_canonical_term_hints() -> None:
+    prompt = build_prompt(
+        question="黑皇杖有什么用？",
+        question_type="knowledge",
+        retrieved_chunks=[make_retrieved_chunk()],
+        canonical_terms=["Black King Bar / BKB"],
+    )
+
+    assert "Canonical terms detected: Black King Bar / BKB" in prompt
 
 
 def test_prompt_warns_when_question_is_advice() -> None:
