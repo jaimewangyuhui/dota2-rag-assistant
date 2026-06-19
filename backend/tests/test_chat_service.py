@@ -108,3 +108,51 @@ async def test_chat_service_stats_question_requires_refresh_when_empty(tmp_path)
     assert response.question_type == "stats"
     assert "POST /api/refresh/stats" in response.answer
     assert response.sources == []
+
+
+@pytest.mark.asyncio
+async def test_chat_service_answers_chinese_hero_alias_stats_question(tmp_path) -> None:
+    store = LocalVectorStore(tmp_path / "vectors.json")
+    embedder = DeterministicEmbedder(dimensions=64)
+    service = ChatService(
+        store=store,
+        embedder=embedder,
+        generator=FakeGenerator("this should not be used"),
+        stats_repository=stats_repository(tmp_path),
+    )
+
+    response = await service.answer("斧王胜率")
+
+    assert response.question_type == "stats"
+    assert response.debug.stats_used is True
+    assert "Axe" in response.answer
+    assert "52.0%" in response.answer
+
+
+class RecordingEmbedder(DeterministicEmbedder):
+    def __init__(self) -> None:
+        super().__init__(dimensions=64)
+        self.last_text: str | None = None
+
+    def embed(self, text: str) -> list[float]:
+        self.last_text = text
+        return super().embed(text)
+
+
+@pytest.mark.asyncio
+async def test_chat_service_uses_expanded_text_for_retrieval(tmp_path) -> None:
+    store = LocalVectorStore(tmp_path / "vectors.json")
+    embedder = RecordingEmbedder()
+    ingest_seed_documents(store=store, embedder=embedder)
+    service = ChatService(
+        store=store,
+        embedder=embedder,
+        generator=FakeGenerator("Black King Bar answer"),
+    )
+
+    await service.answer("黑皇杖有什么用？")
+
+    assert embedder.last_text is not None
+    assert "黑皇杖有什么用？" in embedder.last_text
+    assert "Black King Bar" in embedder.last_text
+    assert "BKB" in embedder.last_text

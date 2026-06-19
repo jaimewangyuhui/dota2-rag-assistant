@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 from app.db.repositories import HeroStatsRepository, HeroStatsRow
+from app.rag.aliases import normalize_question
 from app.rag.classifier import classify_question
 from app.rag.embeddings import Embedder
 from app.rag.generator import Generator
@@ -76,13 +77,14 @@ class ChatService:
         self.stats_repository = stats_repository
 
     async def answer(self, question: str) -> ChatAnswer:
-        question_type = classify_question(question)
+        normalized = normalize_question(question)
+        question_type = classify_question(normalized.expanded)
         if question_type == "stats" and self.stats_repository is not None:
-            stats_answer = self._answer_stats_question(question)
+            stats_answer = self._answer_stats_question(normalized.expanded, normalized.canonical_hero)
             if stats_answer is not None:
                 return stats_answer
 
-        retrieved = self.store.search(self.embedder.embed(question), limit=self.retrieval_limit)
+        retrieved = self.store.search(self.embedder.embed(normalized.expanded), limit=self.retrieval_limit)
         supported = [item for item in retrieved if item.score >= self.minimum_score]
         top_score = supported[0].score if supported else None
         debug = ChatDebug(retrieved_chunks=len(supported), top_score=top_score)
@@ -96,9 +98,10 @@ class ChatService:
             )
 
         prompt = build_prompt(
-            question=question,
+            question=normalized.original,
             question_type=question_type,
             retrieved_chunks=supported,
+            canonical_terms=normalized.canonical_terms,
         )
         answer = await self.generator.generate(prompt)
         return ChatAnswer(
@@ -108,11 +111,11 @@ class ChatService:
             debug=debug,
         )
 
-    def _answer_stats_question(self, question: str) -> ChatAnswer | None:
+    def _answer_stats_question(self, question: str, canonical_hero: str | None = None) -> ChatAnswer | None:
         if self.stats_repository is None:
             return None
 
-        hero = self.stats_repository.find_hero(question)
+        hero = self.stats_repository.find_hero(canonical_hero or question)
         if hero is not None:
             return ChatAnswer(
                 answer=_format_hero_stats_answer(hero),
