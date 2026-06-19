@@ -6,7 +6,11 @@ import {
   ChatResponse,
   fetchHealth,
   HealthResponse,
+  fetchKnowledgeChunks,
+  fetchKnowledgeSummary,
+  KnowledgeChunk,
   KnowledgeRefreshResponse,
+  KnowledgeSummary,
   refreshKnowledge,
   refreshStats,
   StatsRefreshResponse,
@@ -47,6 +51,15 @@ function App() {
   const [statsRefresh, setStatsRefresh] = useState<
     RefreshState<StatsRefreshResponse>
   >({ status: "idle" });
+  const [knowledgeSummary, setKnowledgeSummary] = useState<
+    RefreshState<KnowledgeSummary>
+  >({ status: "idle" });
+  const [knowledgeChunks, setKnowledgeChunks] = useState<
+    RefreshState<{ chunks: KnowledgeChunk[] }>
+  >({ status: "idle" });
+  const [knowledgeQuery, setKnowledgeQuery] = useState("");
+  const [knowledgeEntityType, setKnowledgeEntityType] = useState("");
+  const [knowledgeSourcePrefix, setKnowledgeSourcePrefix] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -66,6 +79,50 @@ function App() {
     () => [...messages].reverse().find((item) => item.role === "assistant"),
     [messages],
   );
+
+  useEffect(() => {
+    let active = true;
+    setKnowledgeSummary({ status: "loading" });
+    fetchKnowledgeSummary()
+      .then((result) => {
+        if (active) setKnowledgeSummary({ status: "success", result });
+      })
+      .catch((error: Error) => {
+        if (active) {
+          setKnowledgeSummary({ status: "error", message: error.message });
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [knowledgeRefresh.status]);
+
+  useEffect(() => {
+    let active = true;
+    setKnowledgeChunks({ status: "loading" });
+    fetchKnowledgeChunks({
+      q: knowledgeQuery.trim() || undefined,
+      entity_type: knowledgeEntityType || undefined,
+      source_prefix: knowledgeSourcePrefix || undefined,
+      limit: 50,
+    })
+      .then((result) => {
+        if (active) setKnowledgeChunks({ status: "success", result });
+      })
+      .catch((error: Error) => {
+        if (active) {
+          setKnowledgeChunks({ status: "error", message: error.message });
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    knowledgeQuery,
+    knowledgeEntityType,
+    knowledgeSourcePrefix,
+    knowledgeRefresh.status,
+  ]);
 
   async function refreshServiceHealth() {
     try {
@@ -245,6 +302,17 @@ function App() {
           </div>
         </section>
 
+        <KnowledgePanel
+          chunksState={knowledgeChunks}
+          entityType={knowledgeEntityType}
+          onEntityTypeChange={setKnowledgeEntityType}
+          onQueryChange={setKnowledgeQuery}
+          onSourcePrefixChange={setKnowledgeSourcePrefix}
+          query={knowledgeQuery}
+          sourcePrefix={knowledgeSourcePrefix}
+          summaryState={knowledgeSummary}
+        />
+
         <div className="workbench">
           <section className="chatPanel" aria-label="Chat">
             <div className="chatStream">
@@ -338,6 +406,139 @@ function App() {
         </div>
       </section>
     </main>
+  );
+}
+
+function KnowledgePanel({
+  chunksState,
+  entityType,
+  onEntityTypeChange,
+  onQueryChange,
+  onSourcePrefixChange,
+  query,
+  sourcePrefix,
+  summaryState,
+}: {
+  chunksState: RefreshState<{ chunks: KnowledgeChunk[] }>;
+  entityType: string;
+  onEntityTypeChange: (value: string) => void;
+  onQueryChange: (value: string) => void;
+  onSourcePrefixChange: (value: string) => void;
+  query: string;
+  sourcePrefix: string;
+  summaryState: RefreshState<KnowledgeSummary>;
+}) {
+  const chunks =
+    chunksState.status === "success" ? (chunksState.result.chunks ?? []) : [];
+
+  return (
+    <section className="knowledgePanel" aria-label="Knowledge">
+      <div className="panelHeader">
+        <h2>Knowledge</h2>
+        {summaryState.status === "success" && (
+          <p>{`${summaryState.result.total_chunks} chunks - ${summaryState.result.total_sources} sources`}</p>
+        )}
+      </div>
+
+      {summaryState.status === "loading" && (
+        <p className="refreshStatus">Loading knowledge...</p>
+      )}
+      {summaryState.status === "error" && (
+        <p className="refreshStatus error" role="alert">
+          {summaryState.message}
+        </p>
+      )}
+      {summaryState.status === "success" &&
+        summaryState.result.total_chunks === 0 && (
+          <p className="refreshStatus">
+            No knowledge indexed. Refresh knowledge to inspect chunks.
+          </p>
+        )}
+      {summaryState.status === "success" &&
+        summaryState.result.total_chunks > 0 && (
+          <div className="knowledgeStats">
+            <MetricList values={summaryState.result.by_entity_type} />
+            <MetricList values={summaryState.result.by_source_prefix} />
+          </div>
+        )}
+
+      <div className="knowledgeFilters">
+        <label>
+          Search knowledge
+          <input
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder="Axe, Blink Dagger, BKB"
+            value={query}
+          />
+        </label>
+        <label>
+          Entity type
+          <select
+            onChange={(event) => onEntityTypeChange(event.target.value)}
+            value={entityType}
+          >
+            <option value="">All</option>
+            <option value="hero">hero</option>
+            <option value="item">item</option>
+            <option value="objective">objective</option>
+            <option value="patch">patch</option>
+          </select>
+        </label>
+        <label>
+          Source prefix
+          <select
+            onChange={(event) => onSourcePrefixChange(event.target.value)}
+            value={sourcePrefix}
+          >
+            <option value="">All</option>
+            <option value="OpenDota Hero">OpenDota Hero</option>
+            <option value="OpenDota Item">OpenDota Item</option>
+            <option value="Seed">Seed</option>
+            <option value="Official Dota 2">Official Dota 2</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+      </div>
+
+      {chunksState.status === "loading" && (
+        <p className="refreshStatus">Loading chunks...</p>
+      )}
+      {chunksState.status === "error" && (
+        <p className="refreshStatus error" role="alert">
+          {chunksState.message}
+        </p>
+      )}
+      {chunksState.status === "success" && chunks.length === 0 && (
+        <p className="refreshStatus">No knowledge chunks match these filters.</p>
+      )}
+      {chunksState.status === "success" && chunks.length > 0 && (
+        <div className="knowledgeList">
+          {chunks.map((chunk) => (
+            <article className="knowledgeItem" key={chunk.chunk_id}>
+              <div>
+                <h3>{chunk.source_name}</h3>
+                <p>
+                  {chunk.entity_type} - {chunk.entity_name}
+                </p>
+              </div>
+              <p>{chunk.preview}</p>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MetricList({ values }: { values: Record<string, number> }) {
+  return (
+    <div className="metricList">
+      {Object.entries(values).map(([name, count]) => (
+        <span className="metricChip" key={name}>
+          {name} {count}
+        </span>
+      ))}
+    </div>
   );
 }
 

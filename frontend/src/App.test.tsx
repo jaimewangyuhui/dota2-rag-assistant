@@ -14,27 +14,84 @@ const healthResponse = {
   ],
 };
 
+const knowledgeSummaryResponse = {
+  total_chunks: 632,
+  total_sources: 631,
+  by_entity_type: { hero: 128, item: 503, objective: 1 },
+  by_source_prefix: {
+    "OpenDota Hero": 128,
+    "OpenDota Item": 500,
+    Seed: 3,
+  },
+  updated_at: "2026-06-20",
+};
+
+const knowledgeChunksResponse = {
+  chunks: [
+    {
+      chunk_id: "axe#chunk-0",
+      source_name: "OpenDota Hero: Axe",
+      source_url: "https://api.opendota.com/api/constants/heroes/2",
+      entity_type: "hero",
+      entity_name: "Axe",
+      patch_version: null,
+      updated_at: "2026-06-20",
+      preview: "Axe is an OpenDota hero constant.",
+    },
+  ],
+};
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function mockAppFetch(
+  handlers: Record<string, Response | (() => Promise<Response>)> = {},
+) {
+  return vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+    const url = String(input);
+    const exactHandler = handlers[url];
+    if (exactHandler instanceof Response) {
+      return Promise.resolve(exactHandler);
+    }
+    if (exactHandler) {
+      return exactHandler();
+    }
+
+    if (url === "/api/health") {
+      return Promise.resolve(jsonResponse(healthResponse));
+    }
+    if (url === "/api/knowledge/summary") {
+      return Promise.resolve(jsonResponse(knowledgeSummaryResponse));
+    }
+    if (url.startsWith("/api/knowledge/chunks")) {
+      return Promise.resolve(jsonResponse(knowledgeChunksResponse));
+    }
+    return Promise.resolve(new Response("not found", { status: 404 }));
+  });
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe("App", () => {
   test("renders service health from the backend", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          app: "Dota 2 RAG Assistant",
-          ok: false,
-          services: [
-            { name: "backend", ok: true, detail: "ready" },
-            { name: "sqlite", ok: true, detail: "ready" },
-            { name: "milvus", ok: true, detail: "local vector directory ready" },
-            { name: "ollama", ok: false, detail: "connection refused" },
-          ],
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+    mockAppFetch({
+      "/api/health": jsonResponse({
+        app: "Dota 2 RAG Assistant",
+        ok: false,
+        services: [
+          { name: "backend", ok: true, detail: "ready" },
+          { name: "sqlite", ok: true, detail: "ready" },
+          { name: "milvus", ok: true, detail: "local vector directory ready" },
+          { name: "ollama", ok: false, detail: "connection refused" },
+        ],
+      }),
+    });
 
     render(<App />);
 
@@ -47,34 +104,24 @@ describe("App", () => {
   });
 
   test("sends a chat question and displays the answer with sources", async () => {
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(healthResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            answer: "Black King Bar grants timed spell immunity.",
-            question_type: "knowledge",
-            sources: [
-              {
-                source_name: "Seed: Black King Bar",
-                source_url: "seed://items/black-king-bar",
-                entity_name: "Black King Bar",
-                entity_type: "item",
-                patch_version: "7.36",
-                updated_at: "2026-06-18",
-                score: 0.23,
-              },
-            ],
-            debug: { retrieved_chunks: 2, top_score: 0.23 },
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
-      );
+    mockAppFetch({
+      "/api/chat": jsonResponse({
+        answer: "Black King Bar grants timed spell immunity.",
+        question_type: "knowledge",
+        sources: [
+          {
+            source_name: "Seed: Black King Bar",
+            source_url: "seed://items/black-king-bar",
+            entity_name: "Black King Bar",
+            entity_type: "item",
+            patch_version: "7.36",
+            updated_at: "2026-06-18",
+            score: 0.23,
+          },
+        ],
+        debug: { retrieved_chunks: 2, top_score: 0.23 },
+      }),
+    });
 
     render(<App />);
 
@@ -95,30 +142,20 @@ describe("App", () => {
   });
 
   test("keeps an empty question from being sent", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(healthResponse), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+    const fetchMock = mockAppFetch();
 
     render(<App />);
 
     await screen.findByLabelText("Ask a Dota 2 question");
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalledWith("/api/chat", expect.anything());
   });
 
   test("shows a retry-oriented error and keeps the question when chat fails", async () => {
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(healthResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      )
-      .mockResolvedValueOnce(new Response("server error", { status: 500 }));
+    mockAppFetch({
+      "/api/chat": new Response("server error", { status: 500 }),
+    });
 
     render(<App />);
 
@@ -138,19 +175,12 @@ describe("App", () => {
 
   test("disables the send button while a chat request is pending", async () => {
     let resolveChat: (value: Response) => void = () => undefined;
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(healthResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
+    mockAppFetch({
+      "/api/chat": () =>
+        new Promise<Response>((resolve) => {
+          resolveChat = resolve;
         }),
-      )
-      .mockImplementationOnce(
-        () =>
-          new Promise<Response>((resolve) => {
-            resolveChat = resolve;
-          }),
-      );
+    });
 
     render(<App />);
 
@@ -180,34 +210,18 @@ describe("App", () => {
   });
 
   test("refreshes knowledge documents from the browser", async () => {
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(healthResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            documents: 3,
-            chunks: 3,
-            sources: [
-              "Official Dota 2: Axe",
-              "Seed: Black King Bar",
-              "Seed: Blink Dagger",
-              "Seed: Roshan",
-            ],
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(healthResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
+    mockAppFetch({
+      "/api/ingest/documents": jsonResponse({
+        documents: 3,
+        chunks: 3,
+        sources: [
+          "Official Dota 2: Axe",
+          "Seed: Black King Bar",
+          "Seed: Blink Dagger",
+          "Seed: Roshan",
+        ],
+      }),
+    });
 
     render(<App />);
 
@@ -223,28 +237,12 @@ describe("App", () => {
   });
 
   test("refreshes hero stats from the browser", async () => {
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(healthResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            heroes: 128,
-            refreshed_at: "2026-06-19T09:00:00Z",
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(healthResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
+    mockAppFetch({
+      "/api/refresh/stats": jsonResponse({
+        heroes: 128,
+        refreshed_at: "2026-06-19T09:00:00Z",
+      }),
+    });
 
     render(<App />);
 
@@ -260,14 +258,9 @@ describe("App", () => {
   });
 
   test("shows a stats refresh error without clearing chat controls", async () => {
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(healthResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      )
-      .mockResolvedValueOnce(new Response("bad gateway", { status: 502 }));
+    mockAppFetch({
+      "/api/refresh/stats": new Response("bad gateway", { status: 502 }),
+    });
 
     render(<App />);
 
@@ -288,25 +281,12 @@ describe("App", () => {
 
   test("disables only the refresh action that is currently pending", async () => {
     let resolveKnowledge: (value: Response) => void = () => undefined;
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(healthResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
+    mockAppFetch({
+      "/api/ingest/documents": () =>
+        new Promise<Response>((resolve) => {
+          resolveKnowledge = resolve;
         }),
-      )
-      .mockImplementationOnce(
-        () =>
-          new Promise<Response>((resolve) => {
-            resolveKnowledge = resolve;
-          }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(healthResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
+    });
 
     render(<App />);
 
@@ -338,12 +318,7 @@ describe("App", () => {
   });
 
   test("shows the current demo build tag", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(healthResponse), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+    mockAppFetch();
 
     render(<App />);
 
@@ -352,12 +327,7 @@ describe("App", () => {
   });
 
   test("fills the chat input from an example question without sending", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify(healthResponse), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+    const fetchMock = mockAppFetch();
 
     render(<App />);
 
@@ -365,25 +335,18 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "What does BKB do?" }));
 
     expect(input).toHaveValue("What does BKB do?");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalledWith("/api/chat", expect.anything());
     expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
   });
 
   test("disables example questions while chat is pending", async () => {
     let resolveChat: (value: Response) => void = () => undefined;
-    vi.spyOn(globalThis, "fetch")
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(healthResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
+    mockAppFetch({
+      "/api/chat": () =>
+        new Promise<Response>((resolve) => {
+          resolveChat = resolve;
         }),
-      )
-      .mockImplementationOnce(
-        () =>
-          new Promise<Response>((resolve) => {
-            resolveChat = resolve;
-          }),
-      );
+    });
 
     render(<App />);
 
@@ -408,5 +371,100 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "What does BKB do?" })).toBeEnabled();
     });
+  });
+
+  test("renders knowledge summary and chunk previews", async () => {
+    mockAppFetch();
+
+    render(<App />);
+
+    expect(await screen.findByText("Knowledge")).toBeInTheDocument();
+    expect(await screen.findByText("632 chunks - 631 sources")).toBeInTheDocument();
+    expect(screen.getByText("hero 128")).toBeInTheDocument();
+    expect(screen.getByText("OpenDota Hero 128")).toBeInTheDocument();
+    expect(screen.getByText("OpenDota Hero: Axe")).toBeInTheDocument();
+    expect(screen.getByText("Axe is an OpenDota hero constant.")).toBeInTheDocument();
+  });
+
+  test("knowledge filters request chunk previews with query params", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url === "/api/health") {
+        return Promise.resolve(
+          new Response(JSON.stringify(healthResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      if (url === "/api/knowledge/summary") {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              total_chunks: 1,
+              total_sources: 1,
+              by_entity_type: { item: 1 },
+              by_source_prefix: { "OpenDota Item": 1 },
+              updated_at: "2026-06-20",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      }
+      if (url.startsWith("/api/knowledge/chunks")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ chunks: [] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      return Promise.resolve(new Response("not found", { status: 404 }));
+    });
+
+    render(<App />);
+
+    const search = await screen.findByLabelText("Search knowledge");
+    fireEvent.change(search, { target: { value: "Blink" } });
+    fireEvent.change(screen.getByLabelText("Entity type"), {
+      target: { value: "item" },
+    });
+    fireEvent.change(screen.getByLabelText("Source prefix"), {
+      target: { value: "OpenDota Item" },
+    });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/api/knowledge/chunks?q=Blink&entity_type=item&source_prefix=OpenDota+Item&limit=50",
+      );
+    });
+  });
+
+  test("knowledge panel shows errors without removing chat controls", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url === "/api/health") {
+        return Promise.resolve(
+          new Response(JSON.stringify(healthResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+      if (url === "/api/knowledge/summary") {
+        return Promise.resolve(new Response("summary failed", { status: 500 }));
+      }
+      if (url.startsWith("/api/knowledge/chunks")) {
+        return Promise.resolve(new Response("chunks failed", { status: 500 }));
+      }
+      return Promise.resolve(new Response("not found", { status: 404 }));
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByText("Knowledge summary failed with HTTP 500"),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Ask a Dota 2 question")).toBeInTheDocument();
   });
 });
