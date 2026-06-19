@@ -10,6 +10,7 @@ The assistant answers in Chinese by default while preserving important English D
 - Backend health, chat, document ingestion, source listing, and stats refresh APIs.
 - Local seed knowledge for BKB, Roshan, and Blink Dagger.
 - Optional official Dota 2 hero and patch document ingestion.
+- OpenDota hero and item constants ingested into the local vector knowledge base.
 - OpenDota hero stats stored in local SQLite.
 - Alias handling for common Chinese/English Dota terms.
 - M9 demo acceptance tests for knowledge, advice, stats, patch, and missing-coverage questions.
@@ -76,6 +77,8 @@ The frontend also exposes `Refresh Knowledge` and `Refresh Stats` buttons.
 ## Demo Questions
 
 - `What does BKB do?`
+- `Blink Dagger cost mobility`
+- `Axe roles strength initiator`
 - `BKB有什么用？`
 - `Roshan 会掉什么？`
 - `肉山掉什么？`

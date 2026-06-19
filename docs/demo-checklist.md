@@ -16,17 +16,23 @@ Date: 2026-06-19
 4. Confirm a success message such as `documents`, `chunks`, and `sources`.
 5. Ask `What does BKB do?`.
 6. Confirm the answer appears with sources.
-7. Ask `Axe win rate meta` after local stats are available.
-8. Confirm the answer includes `Axe`, a win rate, a pick share, and an OpenDota caveat.
-9. Trigger `Refresh Stats` when OpenDota/network is unavailable.
-10. Confirm the UI shows `Stats refresh failed. Check OpenDota/network and retry.` without clearing the chat input.
-11. Click the example question `What does BKB do?`.
-12. Confirm it fills the input without sending automatically.
+7. Ask `Blink Dagger cost mobility`.
+8. Confirm the answer cites `OpenDota Item: Blink Dagger`.
+9. Ask `Axe roles strength initiator`.
+10. Confirm the answer cites `OpenDota Hero: Axe`.
+11. Ask `Axe win rate meta` after local stats are available.
+12. Confirm the answer includes `Axe`, a win rate, a pick share, and an OpenDota caveat.
+13. Trigger `Refresh Stats` when OpenDota/network is unavailable.
+14. Confirm the UI shows `Stats refresh failed. Check OpenDota/network and retry.` without clearing the chat input.
+15. Click the example question `What does BKB do?`.
+16. Confirm it fills the input without sending automatically.
 
 ## Demo Questions
 
 - `BKB有什么用？`
 - `What does BKB do?`
+- `Blink Dagger cost mobility`
+- `Axe roles strength initiator`
 - `Roshan 会掉什么？`
 - `肉山掉什么？`
 - `黑皇杖什么时候出？`

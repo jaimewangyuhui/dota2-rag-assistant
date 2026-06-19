@@ -79,6 +79,8 @@ Refresh Knowledge:
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/ingest/documents
 ```
 
+Document refresh includes seed knowledge and, by default, OpenDota hero/item constants. Official Dota sources remain controlled by `official_dota_sources_enabled`.
+
 Refresh Stats:
 
 ```powershell
@@ -91,6 +93,8 @@ Ask:
 
 ```text
 What does BKB do?
+Blink Dagger cost mobility
+Axe roles strength initiator
 Axe win rate meta
 斧王胜率
 ```
