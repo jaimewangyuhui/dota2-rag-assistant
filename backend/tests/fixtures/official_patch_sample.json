@@ -1,0 +1,21 @@
+{
+  "patches": [
+    {
+      "patch_version": "7.36",
+      "title": "Gameplay Update 7.36",
+      "summary": "Patch 7.36 introduced broad gameplay changes and hero adjustments.",
+      "sections": [
+        {
+          "heading": "General",
+          "entries": ["Added innate abilities for heroes.", "Updated several neutral item timings."]
+        },
+        {
+          "heading": "Heroes",
+          "entries": ["Axe received adjustments to lane pressure.", "Juggernaut received ability tuning."]
+        }
+      ],
+      "source_url": "https://www.dota2.com/patches/7.36",
+      "updated_at": "2026-06-18"
+    }
+  ]
+}
