@@ -1,6 +1,22 @@
 from app.rag.classifier import classify_question
 
 
+def test_classifies_chinese_hero_alias_stats_question() -> None:
+    assert classify_question("斧王胜率") == "stats"
+
+
+def test_classifies_mixed_english_stats_question() -> None:
+    assert classify_question("Axe win rate meta") == "stats"
+
+
+def test_classifies_chinese_item_advice_question() -> None:
+    assert classify_question("跳刀怎么用？") == "advice"
+
+
+def test_classifies_roshan_drop_question_as_knowledge() -> None:
+    assert classify_question("肉山掉什么？") == "knowledge"
+
+
 def test_classifies_patch_questions() -> None:
     assert classify_question("7.36 BKB 改了什么?") == "patch"
 
