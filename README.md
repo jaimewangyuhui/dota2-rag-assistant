@@ -112,3 +112,21 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/ingest/documents
 ```
 
 Tests use local fixtures and do not call `dota2.com`. Official item scraping is intentionally out of scope for M5.
+
+## M6 OpenDota Hero Stats
+
+M6 adds a local SQLite snapshot of OpenDota public-match hero statistics.
+
+Refresh the local stats snapshot:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/refresh/stats
+```
+
+Then ask a stats question:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/chat -ContentType "application/json" -Body '{"message":"Axe win rate meta"}'
+```
+
+M6 stats answers include public win rate, public pick share, sample size, and refresh timestamp. They are OpenDota public-match samples, not real-time global truth. Item trends and match sample analysis are intentionally out of scope for M6.
