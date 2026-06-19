@@ -1,0 +1,25 @@
+{
+  "blink": {
+    "id": 1,
+    "dname": "Blink Dagger",
+    "qual": "component",
+    "cost": 2250,
+    "notes": "Teleport to a target point up to 1200 units away.",
+    "attrib": [],
+    "components": null,
+    "hint": ["Great for initiation and mobility."]
+  },
+  "black_king_bar": {
+    "id": 116,
+    "dname": "Black King Bar",
+    "qual": "epic",
+    "cost": 4050,
+    "notes": "Provides spell immunity-style protection through Avatar in many Dota versions.",
+    "attrib": [
+      {"key": "bonus_strength", "display": "+ {value} Strength", "value": "10"},
+      {"key": "bonus_damage", "display": "+ {value} Damage", "value": "24"}
+    ],
+    "components": ["ogre_axe", "mithril_hammer", "recipe_black_king_bar"],
+    "hint": ["Useful against heavy magical control."]
+  }
+}

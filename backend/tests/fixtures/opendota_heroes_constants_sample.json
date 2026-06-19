@@ -1,0 +1,20 @@
+{
+  "npc_dota_hero_axe": {
+    "id": 2,
+    "name": "npc_dota_hero_axe",
+    "localized_name": "Axe",
+    "primary_attr": "str",
+    "attack_type": "Melee",
+    "roles": ["Initiator", "Durable", "Disabler", "Carry"],
+    "legs": 2
+  },
+  "npc_dota_hero_crystal_maiden": {
+    "id": 5,
+    "name": "npc_dota_hero_crystal_maiden",
+    "localized_name": "Crystal Maiden",
+    "primary_attr": "int",
+    "attack_type": "Ranged",
+    "roles": ["Support", "Disabler", "Nuker"],
+    "legs": 2
+  }
+}
