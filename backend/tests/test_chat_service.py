@@ -1,5 +1,8 @@
 import pytest
 
+from app.data_sources.opendota import OpenDotaHeroStatsRecord
+from app.db.repositories import HeroStatsRepository
+from app.db.session import create_sqlite_engine
 from app.jobs.ingest_documents import ingest_seed_documents
 from app.rag.chat_service import ChatService
 from app.rag.embeddings import DeterministicEmbedder
@@ -41,3 +44,67 @@ async def test_chat_service_returns_uncertainty_when_retrieval_is_insufficient(t
     assert response.answer == "当前知识库没有覆盖这个问题，无法基于已索引来源可靠回答。"
     assert response.sources == []
     assert response.debug.retrieved_chunks == 0
+
+
+def stats_repository(tmp_path) -> HeroStatsRepository:
+    repo = HeroStatsRepository(create_sqlite_engine(tmp_path / "sqlite" / "dota2_rag.db"))
+    repo.upsert_hero_stats(
+        [
+            OpenDotaHeroStatsRecord(
+                hero_id=2,
+                name="npc_dota_hero_axe",
+                localized_name="Axe",
+                primary_attr="str",
+                roles=["Initiator"],
+                public_pick_count=1000,
+                public_win_count=520,
+                public_win_rate=0.52,
+                public_pick_share=0.25,
+                pro_pick_count=22,
+                pro_win_count=7,
+                pro_ban_count=36,
+                refreshed_at="2026-06-19T09:00:00Z",
+            )
+        ]
+    )
+    return repo
+
+
+@pytest.mark.asyncio
+async def test_chat_service_answers_stats_question_from_sqlite(tmp_path) -> None:
+    store = LocalVectorStore(tmp_path / "vectors.json")
+    embedder = DeterministicEmbedder(dimensions=64)
+    service = ChatService(
+        store=store,
+        embedder=embedder,
+        generator=FakeGenerator("this should not be used"),
+        stats_repository=stats_repository(tmp_path),
+    )
+
+    response = await service.answer("Axe pick rate and win rate meta")
+
+    assert response.question_type == "stats"
+    assert "Axe" in response.answer
+    assert "52.0%" in response.answer
+    assert "25.0%" in response.answer
+    assert "1,000" in response.answer
+    assert "2026-06-19T09:00:00Z" in response.answer
+    assert response.sources == []
+
+
+@pytest.mark.asyncio
+async def test_chat_service_stats_question_requires_refresh_when_empty(tmp_path) -> None:
+    store = LocalVectorStore(tmp_path / "vectors.json")
+    embedder = DeterministicEmbedder(dimensions=64)
+    service = ChatService(
+        store=store,
+        embedder=embedder,
+        generator=FakeGenerator("this should not be used"),
+        stats_repository=HeroStatsRepository(create_sqlite_engine(tmp_path / "sqlite" / "dota2_rag.db")),
+    )
+
+    response = await service.answer("Axe win rate meta")
+
+    assert response.question_type == "stats"
+    assert "POST /api/refresh/stats" in response.answer
+    assert response.sources == []

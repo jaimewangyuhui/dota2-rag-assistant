@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
+from app.db.repositories import HeroStatsRepository
+from app.db.session import create_sqlite_engine
 from app.rag.chat_service import ChatAnswer, ChatService
 from app.rag.embeddings import DeterministicEmbedder
 from app.rag.generator import OllamaChatGenerator
@@ -31,5 +33,6 @@ async def chat(payload: ChatRequest, request: Request) -> ChatAnswer:
         store=LocalVectorStore(settings.vector_index_path),
         embedder=DeterministicEmbedder(dimensions=64),
         generator=_generator_for_request(request),
+        stats_repository=HeroStatsRepository(create_sqlite_engine(settings.sqlite_path)),
     )
     return await service.answer(payload.message)

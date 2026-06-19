@@ -7,6 +7,14 @@ from app.main import create_app
 from app.rag.generator import FakeGenerator
 
 
+FIXTURE_DIR = Path(__file__).parent / "fixtures"
+
+
+class FixtureOpenDotaClient:
+    def fetch_hero_stats(self) -> str:
+        return (FIXTURE_DIR / "opendota_hero_stats_sample.json").read_text(encoding="utf-8")
+
+
 def test_chat_endpoint_answers_with_sources_after_ingestion(tmp_path: Path) -> None:
     settings = Settings(
         sqlite_path=tmp_path / "sqlite" / "dota2_rag.db",
@@ -42,3 +50,25 @@ def test_chat_endpoint_returns_uncertainty_without_index(tmp_path: Path) -> None
     assert response.status_code == 200
     assert response.json()["answer"] == "当前知识库没有覆盖这个问题，无法基于已索引来源可靠回答。"
     assert response.json()["sources"] == []
+
+
+def test_chat_endpoint_answers_stats_after_refresh(tmp_path: Path) -> None:
+    settings = Settings(
+        sqlite_path=tmp_path / "sqlite" / "dota2_rag.db",
+        vector_data_path=tmp_path / "vectors",
+        vector_index_path=tmp_path / "vectors" / "text_chunks.json",
+    )
+    app = create_app(settings)
+    app.state.opendota_client = FixtureOpenDotaClient()
+    app.state.stats_refreshed_at = "2026-06-19T09:00:00Z"
+    client = TestClient(app)
+    client.post("/api/refresh/stats")
+
+    response = client.post("/api/chat", json={"message": "Axe win rate meta"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["question_type"] == "stats"
+    assert "Axe" in payload["answer"]
+    assert "52.0%" in payload["answer"]
+    assert payload["debug"]["stats_used"] is True
