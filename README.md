@@ -8,6 +8,7 @@ The assistant answers in Chinese by default while preserving important English D
 
 - Web chat UI with source display and demo question shortcuts.
 - Backend health, chat, document ingestion, source listing, and stats refresh APIs.
+- Read-only knowledge browser APIs and frontend panel for inspecting indexed chunks.
 - Local seed knowledge for BKB, Roshan, and Blink Dagger.
 - Optional official Dota 2 hero and patch document ingestion.
 - OpenDota hero and item constants ingested into the local vector knowledge base.
@@ -73,6 +74,20 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/refresh/stats
 ```
 
 The frontend also exposes `Refresh Knowledge` and `Refresh Stats` buttons.
+
+## Knowledge Browser
+
+The frontend Knowledge panel shows indexed chunk/source counts, entity/source
+breakdowns, and preview rows from the local vector store. Use the search box and
+filters to inspect local OpenDota hero/item documents before asking chat
+questions.
+
+Knowledge browser API endpoints:
+
+```text
+GET http://127.0.0.1:8000/api/knowledge/summary
+GET http://127.0.0.1:8000/api/knowledge/chunks?q=Axe&entity_type=hero&source_prefix=OpenDota%20Hero&limit=50
+```
 
 ## Demo Questions
 

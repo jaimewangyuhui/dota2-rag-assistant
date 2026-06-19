@@ -14,18 +14,23 @@ Date: 2026-06-19
 2. Confirm service health loads.
 3. Click `Refresh Knowledge`.
 4. Confirm a success message such as `documents`, `chunks`, and `sources`.
-5. Ask `What does BKB do?`.
-6. Confirm the answer appears with sources.
-7. Ask `Blink Dagger cost mobility`.
-8. Confirm the answer cites `OpenDota Item: Blink Dagger`.
-9. Ask `Axe roles strength initiator`.
-10. Confirm the answer cites `OpenDota Hero: Axe`.
-11. Ask `Axe win rate meta` after local stats are available.
-12. Confirm the answer includes `Axe`, a win rate, a pick share, and an OpenDota caveat.
-13. Trigger `Refresh Stats` when OpenDota/network is unavailable.
-14. Confirm the UI shows `Stats refresh failed. Check OpenDota/network and retry.` without clearing the chat input.
-15. Click the example question `What does BKB do?`.
-16. Confirm it fills the input without sending automatically.
+5. Confirm the Knowledge panel shows chunk/source totals and OpenDota source counts.
+6. Search `Axe` in the Knowledge panel.
+7. Confirm a preview row for `OpenDota Hero: Axe`.
+8. Search `Blink Dagger` and set `Entity type` to `item`.
+9. Confirm a preview row for `OpenDota Item: Blink Dagger`.
+10. Ask `What does BKB do?`.
+11. Confirm the answer appears with sources.
+12. Ask `Blink Dagger cost mobility`.
+13. Confirm the answer cites `OpenDota Item: Blink Dagger`.
+14. Ask `Axe roles strength initiator`.
+15. Confirm the answer cites `OpenDota Hero: Axe`.
+16. Ask `Axe win rate meta` after local stats are available.
+17. Confirm the answer includes `Axe`, a win rate, a pick share, and an OpenDota caveat.
+18. Trigger `Refresh Stats` when OpenDota/network is unavailable.
+19. Confirm the UI shows `Stats refresh failed. Check OpenDota/network and retry.` without clearing the chat input.
+20. Click the example question `What does BKB do?`.
+21. Confirm it fills the input without sending automatically.
 
 ## Demo Questions
 
