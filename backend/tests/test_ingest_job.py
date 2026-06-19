@@ -61,3 +61,61 @@ def test_ingest_seed_documents_can_include_official_documents(tmp_path: Path) ->
     assert "Official Dota 2: Axe" in result.sources
     retrieved = Retriever(store=store, embedder=embedder).retrieve("Axe official hero", limit=1)
     assert retrieved[0].chunk.metadata.entity_name == "Axe"
+
+
+def opendota_test_documents() -> list[DocumentInput]:
+    return [
+        DocumentInput(
+            text=(
+                "Axe is an OpenDota hero constant. Primary attribute: str. "
+                "Roles: Initiator, Durable, Disabler, Carry."
+            ),
+            metadata=SourceMetadata(
+                source_url="https://api.opendota.com/api/constants/heroes/2",
+                source_name="OpenDota Hero: Axe",
+                patch_version=None,
+                entity_type="hero",
+                entity_name="Axe",
+                updated_at="2026-06-20",
+            ),
+        ),
+        DocumentInput(
+            text=(
+                "Blink Dagger is an OpenDota item constant. Cost: 2250. "
+                "Notes: Teleport to a target point up to 1200 units away."
+            ),
+            metadata=SourceMetadata(
+                source_url="https://api.opendota.com/api/constants/items/blink",
+                source_name="OpenDota Item: Blink Dagger",
+                patch_version=None,
+                entity_type="item",
+                entity_name="Blink Dagger",
+                updated_at="2026-06-20",
+            ),
+        ),
+    ]
+
+
+def test_ingest_seed_documents_can_include_multiple_extra_document_loaders(
+    tmp_path: Path,
+) -> None:
+    store = LocalVectorStore(tmp_path / "vectors.json")
+    embedder = DeterministicEmbedder(dimensions=64)
+
+    result = ingest_seed_documents(
+        store=store,
+        embedder=embedder,
+        document_loaders=[official_test_documents, opendota_test_documents],
+    )
+
+    assert result.documents == 7
+    assert "Official Dota 2: Axe" in result.sources
+    assert "OpenDota Hero: Axe" in result.sources
+    assert "OpenDota Item: Blink Dagger" in result.sources
+
+    retriever = Retriever(store=store, embedder=embedder)
+    hero_result = retriever.retrieve("OpenDota Axe constant primary attribute str", limit=1)[0]
+    item_result = retriever.retrieve("Blink Dagger cost mobility", limit=1)[0]
+
+    assert hero_result.chunk.metadata.source_name == "OpenDota Hero: Axe"
+    assert item_result.chunk.metadata.source_name == "OpenDota Item: Blink Dagger"
