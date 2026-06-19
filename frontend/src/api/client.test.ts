@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { askChat, refreshKnowledge, refreshStats } from "./client";
+import {
+  askChat,
+  fetchKnowledgeChunks,
+  fetchKnowledgeSummary,
+  refreshKnowledge,
+  refreshStats,
+} from "./client";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -120,5 +126,62 @@ describe("refreshStats", () => {
     await expect(refreshStats()).rejects.toThrow(
       "Stats refresh failed. Check OpenDota/network and retry.",
     );
+  });
+});
+
+describe("knowledge browser", () => {
+  test("fetchKnowledgeSummary calls summary endpoint", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          total_chunks: 4,
+          total_sources: 4,
+          by_entity_type: { hero: 2, item: 2 },
+          by_source_prefix: { "OpenDota Hero": 1, "OpenDota Item": 1, Seed: 1 },
+          updated_at: "2026-06-20",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await fetchKnowledgeSummary();
+
+    expect(fetch).toHaveBeenCalledWith("/api/knowledge/summary");
+    expect(result.total_chunks).toBe(4);
+    expect(result.by_entity_type.hero).toBe(2);
+  });
+
+  test("fetchKnowledgeChunks sends filters as query params", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          chunks: [
+            {
+              chunk_id: "blink#chunk-0",
+              source_name: "OpenDota Item: Blink Dagger",
+              source_url: "https://api.opendota.com/api/constants/items/blink",
+              entity_type: "item",
+              entity_name: "Blink Dagger",
+              patch_version: null,
+              updated_at: "2026-06-20",
+              preview: "Blink Dagger is an OpenDota item constant.",
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await fetchKnowledgeChunks({
+      q: "Blink",
+      entity_type: "item",
+      source_prefix: "OpenDota Item",
+      limit: 25,
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/knowledge/chunks?q=Blink&entity_type=item&source_prefix=OpenDota+Item&limit=25",
+    );
+    expect(result.chunks[0].source_name).toBe("OpenDota Item: Blink Dagger");
   });
 });

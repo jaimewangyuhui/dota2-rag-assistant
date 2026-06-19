@@ -43,6 +43,36 @@ export type ChatResponse = {
   debug: ChatDebug;
 };
 
+export type KnowledgeSummary = {
+  total_chunks: number;
+  total_sources: number;
+  by_entity_type: Record<string, number>;
+  by_source_prefix: Record<string, number>;
+  updated_at: string | null;
+};
+
+export type KnowledgeChunk = {
+  chunk_id: string;
+  source_name: string;
+  source_url: string;
+  entity_type: string;
+  entity_name: string;
+  patch_version: string | null;
+  updated_at: string;
+  preview: string;
+};
+
+export type KnowledgeChunksResponse = {
+  chunks: KnowledgeChunk[];
+};
+
+export type KnowledgeChunkFilters = {
+  q?: string;
+  entity_type?: string;
+  source_prefix?: string;
+  limit?: number;
+};
+
 const CHAT_ERROR = "Chat request failed. Check backend and Ollama, then retry.";
 const KNOWLEDGE_REFRESH_ERROR =
   "Knowledge refresh failed. Check backend and retry.";
@@ -87,4 +117,28 @@ export async function refreshStats(): Promise<StatsRefreshResponse> {
     throw new Error(STATS_REFRESH_ERROR);
   }
   return response.json() as Promise<StatsRefreshResponse>;
+}
+
+export async function fetchKnowledgeSummary(): Promise<KnowledgeSummary> {
+  const response = await fetch("/api/knowledge/summary");
+  if (!response.ok) {
+    throw new Error(`Knowledge summary failed with HTTP ${response.status}`);
+  }
+  return response.json() as Promise<KnowledgeSummary>;
+}
+
+export async function fetchKnowledgeChunks(
+  filters: KnowledgeChunkFilters = {},
+): Promise<KnowledgeChunksResponse> {
+  const params = new URLSearchParams();
+  if (filters.q) params.set("q", filters.q);
+  if (filters.entity_type) params.set("entity_type", filters.entity_type);
+  if (filters.source_prefix) params.set("source_prefix", filters.source_prefix);
+  if (filters.limit) params.set("limit", String(filters.limit));
+  const query = params.toString();
+  const response = await fetch(`/api/knowledge/chunks${query ? `?${query}` : ""}`);
+  if (!response.ok) {
+    throw new Error(`Knowledge chunks failed with HTTP ${response.status}`);
+  }
+  return response.json() as Promise<KnowledgeChunksResponse>;
 }
