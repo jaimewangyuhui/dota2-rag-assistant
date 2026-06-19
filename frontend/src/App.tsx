@@ -28,6 +28,13 @@ type RefreshState<T> =
   | { status: "success"; result: T }
   | { status: "error"; message: string };
 
+const EXAMPLE_QUESTIONS = [
+  "What does BKB do?",
+  "Roshan drops what?",
+  "Axe win rate meta",
+  "Blink Dagger怎么用？",
+];
+
 function App() {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [message, setMessage] = useState("");
@@ -148,7 +155,7 @@ function App() {
             <p className="eyebrow">Local Dota 2 RAG</p>
             <h1>Dota 2 RAG Assistant</h1>
           </div>
-          <span className="buildTag">M4</span>
+          <span className="buildTag">M7 Demo</span>
         </header>
 
         {state.status === "loading" && (
@@ -271,6 +278,18 @@ function App() {
 
             <form className="chatForm" onSubmit={submitQuestion}>
               <label htmlFor="chat-input">Ask a Dota 2 question</label>
+              <div className="exampleRow" aria-label="Example questions">
+                {EXAMPLE_QUESTIONS.map((example) => (
+                  <button
+                    disabled={isSending}
+                    key={example}
+                    onClick={() => setMessage(example)}
+                    type="button"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
               <div className="inputRow">
                 <input
                   disabled={isSending}

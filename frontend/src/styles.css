@@ -276,6 +276,30 @@ h1 {
   font-weight: 800;
 }
 
+.exampleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.exampleRow button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #b7c5bc;
+  border-radius: 6px;
+  background: #f4f6f1;
+  color: #33423a;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.exampleRow button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .inputRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 104px;

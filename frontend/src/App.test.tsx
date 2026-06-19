@@ -336,4 +336,77 @@ describe("App", () => {
       expect(knowledgeButton).toBeEnabled();
     });
   });
+
+  test("shows the current demo build tag", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify(healthResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    render(<App />);
+
+    await screen.findByText("M7 Demo");
+    expect(screen.queryByText("M4")).not.toBeInTheDocument();
+  });
+
+  test("fills the chat input from an example question without sending", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify(healthResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    render(<App />);
+
+    const input = await screen.findByLabelText("Ask a Dota 2 question");
+    fireEvent.click(screen.getByRole("button", { name: "What does BKB do?" }));
+
+    expect(input).toHaveValue("What does BKB do?");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
+  });
+
+  test("disables example questions while chat is pending", async () => {
+    let resolveChat: (value: Response) => void = () => undefined;
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(healthResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveChat = resolve;
+          }),
+      );
+
+    render(<App />);
+
+    const input = await screen.findByLabelText("Ask a Dota 2 question");
+    fireEvent.change(input, { target: { value: "What does BKB do?" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(screen.getByRole("button", { name: "What does BKB do?" })).toBeDisabled();
+
+    resolveChat(
+      new Response(
+        JSON.stringify({
+          answer: "Black King Bar grants timed spell immunity.",
+          question_type: "knowledge",
+          sources: [],
+          debug: { retrieved_chunks: 0, top_score: null },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "What does BKB do?" })).toBeEnabled();
+    });
+  });
 });

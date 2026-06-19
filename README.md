@@ -95,6 +95,8 @@ http://127.0.0.1:5173
 
 The browser demo also includes a `Data refresh` panel. Use `Refresh Knowledge` to call `POST /api/ingest/documents` and `Refresh Stats` to call `POST /api/refresh/stats` without leaving the UI.
 
+The chat input includes example question buttons for quick manual testing. Clicking an example fills the input and lets you edit before sending.
+
 Ask:
 
 ```text
