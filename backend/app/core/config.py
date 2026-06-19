@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_chat_model: str = "qwen2.5:7b"
     official_dota_sources_enabled: bool = False
+    opendota_base_url: str = "https://api.opendota.com/api"
     cors_origins: str = Field(
         default="http://localhost:5173,http://127.0.0.1:5173",
         description="Comma-separated browser origins allowed to call the API.",
