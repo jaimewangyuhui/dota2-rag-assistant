@@ -17,9 +17,10 @@
 - Create `backend/tests/fixtures/official_patch_sample.json`: stable patch fixture with one patch.
 - Create `backend/tests/test_official_dota_source.py`: parser, converter, client, and loader tests.
 - Modify `backend/app/jobs/ingest_documents.py`: add `official_documents_loader` injection and count seed plus official documents.
-- Modify `backend/app/api/ingest.py`: use official loader for runtime ingestion.
+- Modify `backend/app/core/config.py`: add `official_dota_sources_enabled`, defaulting to `False`.
+- Modify `backend/app/api/ingest.py`: use official loader for runtime ingestion only when an app-state override exists or the runtime flag is enabled.
 - Modify `backend/tests/test_ingest_job.py`: verify official docs are indexed when loader is provided.
-- Modify `backend/tests/test_ingest_api.py`: override official loader in app state and assert official sources return.
+- Modify `backend/tests/test_ingest_api.py`: override official loader in app state and assert official sources return without live network.
 - Modify `README.md`: add M5 official heroes/patches ingestion note.
 
 ## Task 1: Official Hero Source Parser and Converter
@@ -467,6 +468,7 @@ git commit -m "feat: parse official dota patch sources"
 
 **Files:**
 - Modify: `backend/app/jobs/ingest_documents.py`
+- Modify: `backend/app/core/config.py`
 - Modify: `backend/app/api/ingest.py`
 - Modify: `backend/tests/test_ingest_job.py`
 - Modify: `backend/tests/test_ingest_api.py`
@@ -631,7 +633,17 @@ $env:TEMP="$PWD\.tmp"; $env:TMP=$env:TEMP
 
 Expected: FAIL because `app.state.official_documents_loader` is not passed into the ingest job.
 
-- [ ] **Step 7: Wire official loader into ingest API**
+- [ ] **Step 7: Add disabled-by-default official source setting**
+
+Modify `backend/app/core/config.py`:
+
+```python
+    official_dota_sources_enabled: bool = False
+```
+
+This keeps local tests and default development ingestion offline unless a test override or environment setting explicitly opts into official fetching.
+
+- [ ] **Step 8: Wire official loader into ingest API**
 
 Modify `backend/app/api/ingest.py`:
 
@@ -642,11 +654,10 @@ from app.data_sources.official_dota import load_official_dota_documents
 Inside the endpoint before calling `ingest_seed_documents`:
 
 ```python
-official_documents_loader = getattr(
-    request.app.state,
-    "official_documents_loader",
-    load_official_dota_documents,
-)
+settings = request.app.state.settings
+official_documents_loader = getattr(request.app.state, "official_documents_loader", None)
+if official_documents_loader is None and settings.official_dota_sources_enabled:
+    official_documents_loader = load_official_dota_documents
 ```
 
 Call:
@@ -659,7 +670,7 @@ result = ingest_seed_documents(
 )
 ```
 
-- [ ] **Step 8: Run ingest API tests and verify GREEN**
+- [ ] **Step 9: Run ingest API tests and verify GREEN**
 
 Run:
 
@@ -671,12 +682,12 @@ $env:TEMP="$PWD\.tmp"; $env:TMP=$env:TEMP
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit official ingestion integration**
+- [ ] **Step 10: Commit official ingestion integration**
 
 Run:
 
 ```powershell
-git add backend/app/jobs/ingest_documents.py backend/app/api/ingest.py backend/tests/test_ingest_job.py backend/tests/test_ingest_api.py
+git add backend/app/jobs/ingest_documents.py backend/app/core/config.py backend/app/api/ingest.py backend/tests/test_ingest_job.py backend/tests/test_ingest_api.py
 git commit -m "feat: ingest official dota documents"
 ```
 
@@ -692,7 +703,9 @@ Append to `README.md`:
 ```markdown
 ## M5 Official Heroes And Patches
 
-M5 indexes official Dota 2 hero and patch note documents in addition to local seed documents.
+M5 can index official Dota 2 hero and patch note documents in addition to local seed documents.
+
+Official website fetching is disabled by default so local tests and offline development remain deterministic. Set `OFFICIAL_DOTA_SOURCES_ENABLED=true` before starting the backend to include live official heroes and patches during ingestion.
 
 ```powershell
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/ingest/documents
@@ -745,7 +758,7 @@ With backend running, run:
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/ingest/documents | ConvertTo-Json -Depth 8
 ```
 
-Expected: response includes seed sources plus official sources such as `Official Dota 2: Axe` and `Official Dota 2 Patch 7.36`.
+Expected when `OFFICIAL_DOTA_SOURCES_ENABLED=true`: response includes seed sources plus official sources such as `Official Dota 2: Axe` and `Official Dota 2 Patch 7.36`.
 
 Then ask:
 
