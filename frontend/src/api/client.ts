@@ -10,6 +10,17 @@ export type HealthResponse = {
   services: ServiceStatus[];
 };
 
+export type KnowledgeRefreshResponse = {
+  documents: number;
+  chunks: number;
+  sources: string[];
+};
+
+export type StatsRefreshResponse = {
+  heroes: number;
+  refreshed_at: string;
+};
+
 export type ChatSource = {
   source_name: string;
   source_url?: string | null;
@@ -33,6 +44,10 @@ export type ChatResponse = {
 };
 
 const CHAT_ERROR = "Chat request failed. Check backend and Ollama, then retry.";
+const KNOWLEDGE_REFRESH_ERROR =
+  "Knowledge refresh failed. Check backend and retry.";
+const STATS_REFRESH_ERROR =
+  "Stats refresh failed. Check OpenDota/network and retry.";
 
 export async function fetchHealth(): Promise<HealthResponse> {
   const response = await fetch("/api/health");
@@ -52,4 +67,24 @@ export async function askChat(message: string): Promise<ChatResponse> {
     throw new Error(CHAT_ERROR);
   }
   return response.json() as Promise<ChatResponse>;
+}
+
+export async function refreshKnowledge(): Promise<KnowledgeRefreshResponse> {
+  const response = await fetch("/api/ingest/documents", {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error(KNOWLEDGE_REFRESH_ERROR);
+  }
+  return response.json() as Promise<KnowledgeRefreshResponse>;
+}
+
+export async function refreshStats(): Promise<StatsRefreshResponse> {
+  const response = await fetch("/api/refresh/stats", {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error(STATS_REFRESH_ERROR);
+  }
+  return response.json() as Promise<StatsRefreshResponse>;
 }
