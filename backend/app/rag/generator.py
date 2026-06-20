@@ -39,6 +39,7 @@ class OllamaChatGenerator:
                     "model": self.model,
                     "messages": [{"role": "user", "content": prompt}],
                     "stream": False,
+                    "options": {"num_predict": 180},
                 },
             )
             response.raise_for_status()
